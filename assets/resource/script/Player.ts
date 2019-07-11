@@ -1,22 +1,14 @@
-// Learn TypeScript:
-//  - [Chinese] https://docs.cocos.com/creator/manual/zh/scripting/typescript.html
-//  - [English] http://www.cocos2d-x.org/docs/creator/manual/en/scripting/typescript.html
-// Learn Attribute:
-//  - [Chinese] https://docs.cocos.com/creator/manual/zh/scripting/reference/attributes.html
-//  - [English] http://www.cocos2d-x.org/docs/creator/manual/en/scripting/reference/attributes.html
-// Learn life-cycle callbacks:
-//  - [Chinese] https://docs.cocos.com/creator/manual/zh/scripting/life-cycle-callbacks.html
-//  - [English] http://www.cocos2d-x.org/docs/creator/manual/en/scripting/life-cycle-callbacks.html
+import Main from "./Main";
 
 const { ccclass, property } = cc._decorator;
 @ccclass
 export default class Player extends cc.Component {
-    @property(cc.Label)
-    dq: cc.Label = null;
-    @property(cc.Label)
-    startStr: cc.Label = null;
+
+
     @property(cc.Camera)
     Camera: cc.Camera
+    @property(cc.Node)
+    StartNode: cc.Node
     /**
      * 轮胎轨迹
      */
@@ -45,28 +37,28 @@ export default class Player extends cc.Component {
     //倒计时
     Countdown = 3;
     //计算时间
-    Timeing: number;
-    //游戏是否结束
-    stop: boolean = true;
+    Timeing: number = 0;
+
     dirRotation: number;
     body: cc.RigidBody;
     powerStorage: number = 0;//蓄力
     rota: any;
     //当前移动到的漂移节点
     region: cc.RopeJoint;
-    //控制在反复调用的方法上只执行一次
-    pm: boolean = false;
+
     //锚点位置
     vc: cc.Vec2;
-
+    //游戏是否结束
+    stop: boolean = true;
+    ring: number = -1
+    //控制在反复调用的方法上只执行一次
+    pm: boolean = false;
     Accelerating: boolean = false
 
     left: cc.Node;
     right: cc.Node;
     enemyPool: cc.NodePool
     Track = []
-
-    spt = 0;
     //----------------------------------------------//
     onLoad() {
         this.a = (this.MaxSpeed - this.speed) / this.speedTime
@@ -85,9 +77,9 @@ export default class Player extends cc.Component {
     }
 
     start() {
-        this.startStr.string = "游戏倒计时"
-        this.dq.string = "0"
-        this.schedule(this.strCall, 1)
+        // this.startStr.string = "游戏倒计时"
+        // this.dq.string = "0"
+        // this.schedule(this.strCall, 1)
         this.node.rotation = this.node.rotation >= 360 ? this.node.rotation / 360 : this.node.rotation
         this.body = this.getComponent(cc.RigidBody);
         this.left = this.node.getChildByName("left");// getComponent("")
@@ -96,58 +88,19 @@ export default class Player extends cc.Component {
         cc.systemEvent.on(cc.SystemEvent.EventType.KEY_UP, this.onKeyUp, this);
         //前进方向
         this.dirRotation = this.node.rotation
-
+        this.onEvent();
     }
-    onKeyUp(e) {
-        switch (e.keyCode) {
-            case cc.macro.KEY.j:
-                this.keyList[e.keyCode] = false
-                break
-            case cc.macro.KEY.f:
-                this.keyList[e.keyCode] = false
-                this.emitPower(false)
-                break;
-            case cc.macro.KEY.s:
-                this.keyList[e.keyCode] = false
-                break;
-            case cc.macro.KEY.d:
-                this.rota = 5;
-                this.keyList[e.keyCode] = false;
-            case cc.macro.KEY.a:
-                this.rota = -5;
-                this.keyList[e.keyCode] = false;
-            default: break
-
-        }
-    }
-    onKeyDown(e) {
-        switch (e.keyCode) {
-            case cc.macro.KEY.f:
-                this.keyList[e.keyCode] = true
-                this.emitPower(true)
-                break;
-            case cc.macro.KEY.j:
-                this.keyList[e.keyCode] = true;
-                break;
-            case cc.macro.KEY.s:
-                this.keyList[e.keyCode] = true;
-                this.stop = !this.stop;
-                break;
-            case cc.macro.KEY.d:
-                this.rota = 5;
-                this.keyList[e.keyCode] = true;
-                break
-            case cc.macro.KEY.a:
-                this.rota = -5;
-                this.keyList[e.keyCode] = true;
-                break
-            default: break
-        }
+    onEvent() {
+        this.node.on("gameStart", function () {
+            //游戏开始
+            this.stop = false
+        }, this);
     }
 
     update(dt) {
 
-        this.dq.string = Math.floor(this.powerStorage).toString()
+        //氮气
+        // this.dq.string = Math.floor(this.powerStorage).toString()
         if (this.Camera) {
             this.Camera.node.x = this.node.x
             this.Camera.node.y = this.node.y
@@ -166,9 +119,7 @@ export default class Player extends cc.Component {
                 // console.log(this.dirRotation, p, this.node.rotation);
 
                 p = this.region.node.rotation === 180 ? p + 60 : p + 120
-                console.log(this.node.rotation, p);
                 p = p >= 360 ? p - (Math.floor(p / 360)) * 360 : p
-                console.log("r--->"+this.node.rotation, p);
 
 
                 let r = this.node.rotation >= 360 ? this.node.rotation - (Math.floor(this.node.rotation / 360)) * 360 : this.node.rotation;
@@ -178,8 +129,7 @@ export default class Player extends cc.Component {
                 this.dirRotation += (this.node.rotation + (this.region.node.rotation === 180 ? 30 : -30) - this.dirRotation)
                 //攒气 
                 this.storgPower();
-
-
+                //留下轮胎印
                 if (this.Track.length < 20) {
                     let right = this.enemyPool.size() > 0 ? this.enemyPool.get() : cc.instantiate(this.c);
                     let left = this.enemyPool.size() > 0 ? this.enemyPool.get() : cc.instantiate(this.c);
@@ -215,18 +165,7 @@ export default class Player extends cc.Component {
         if (this.stop) {
             return
         }
-        // this.dirRotation = this.dirRotation >= 360 ? this.dirRotation - (Math.floor(this.dirRotation / 360)) * 360 : this.dirRotation
         this.dirRotation += (this.node.rotation - this.dirRotation) / 20
-
-
-        // let y = ((this.keyList[cc.macro.KEY.f] || (this.keyList[cc.macro.KEY.j] && this.region)) ? 10 : 5) * Math.cos(this.dirRotation * Math.PI / 180)
-        // let x = ((this.keyList[cc.macro.KEY.f] || (this.keyList[cc.macro.KEY.j] && this.region)) ? 10 : 5) * Math.sin(this.dirRotation * Math.PI / 180)
-
-        /**
-         * 速度,如果速度不等于最大速度，则需要在X时间内加速到这个速度
-         */
-
-
         if (this.powerStorage < 100 && Math.abs(this.speed) > this.MaxSpeed) {
             this.speed = this.MaxSpeed;
         } else if (Math.abs(this.speed) < this.MaxSpeed) {
@@ -271,13 +210,22 @@ export default class Player extends cc.Component {
      * @param self 
      */
     onCollisionEnter(other, self) {
+        if (other.node === this.StartNode) {
+            this.ring++;
+            console.log("第"+this.ring+"圈");
+            
+        }
+        // this.node.emit("test",function(){
+        //     console.log("------------");
+
+        // })
         this.region = other.getComponent(cc.RopeJoint);
         if (this.region && this.keyList[cc.macro.KEY.j]) {
             this.region.enabled = false;
             this.region.connectedBody = self.getComponent(cc.RigidBody);
-            this.vc = cc.v2(
-                other.node.convertToWorldSpaceAR(this.region.anchor).x - cc.view.getVisibleSize().width / 2,
-                other.node.convertToWorldSpaceAR(this.region.anchor).y - cc.view.getVisibleSize().height / 2)
+
+            this.vc = other.node.parent.parent.convertToNodeSpaceAR(other.node.convertToWorldSpaceAR(this.region.anchor))
+
             this.region.maxLength = this.getVec2(this.vc, this.node)
             this.region.enabled = this.keyList[cc.macro.KEY.j];
 
@@ -317,9 +265,11 @@ export default class Player extends cc.Component {
                 // this.region.enabled = this.keyList[cc.macro.KEY.j]
                 this.region.enabled = false;
                 this.region.connectedBody = self.getComponent(cc.RigidBody);
-                this.vc = cc.v2(
-                    other.node.convertToWorldSpaceAR(this.region.anchor).x - cc.view.getVisibleSize().width / 2,
-                    other.node.convertToWorldSpaceAR(this.region.anchor).y - cc.view.getVisibleSize().height / 2)
+                // this.vc = cc.v2(
+                //     other.node.convertToWorldSpaceAR(this.region.anchor).x - cc.view.getVisibleSize().width / 2,
+                //     other.node.convertToWorldSpaceAR(this.region.anchor).y - cc.view.getVisibleSize().height / 2)
+
+                this.vc = other.node.parent.parent.convertToNodeSpaceAR(other.node.convertToWorldSpaceAR(this.region.anchor))
                 this.region.maxLength = this.getVec2(this.vc, this.node)
                 this.region.enabled = this.keyList[cc.macro.KEY.j]
             }
@@ -353,47 +303,86 @@ export default class Player extends cc.Component {
     getVec2(c1: any, c2: any) {
         return Math.sqrt(Math.pow(c1.x - c2.x, 2) + Math.pow(c1.y - c2.y, 2))
     }
-    //回调函数
-    strCall = function () {
-        if (this.Countdown === 0) {
-            this.stop = false;
-            this.startStr.node.destroy();
-            // 取消这个计时器
-            this.unschedule(this.strCall);
-            return
-        }
-        this.startStr.string = this.Countdown
 
-        this.Countdown--;
-    }
+
+
     //积攒氮气
     storgPower() {
         if (this.Accelerating) {
             return
         }
         this.powerStorage = this.powerStorage < 100 ? this.powerStorage + 0.5 : 100
+        this.node.emit("storgPower", Math.floor(this.powerStorage).toString())//发射事件，正在攒气
     }
     /**
      * 使用氮气加速
      * @param b 取消与使用
      */
-    emitPower(b: boolean) {
-        if (b) {
-            if (this.powerStorage === 100) {
-                this.speed = this.MaxSpeed + this.MaxSpeed * 0.2
-                this.Accelerating = true;
-                this.schedule(this.power, 0.05)
-            }
-        } else {
-            this.speed = this.MaxSpeed
+    emitPower() {
+
+        if (this.powerStorage === 100) {
+            console.log("加速");
+
+            this.speed = this.MaxSpeed + this.MaxSpeed * 0.2
+            this.Accelerating = true;
+            this.schedule(this.power, 0.05)
         }
+
     }
     power = function () {
         this.powerStorage--;
         if (this.powerStorage === 0) {
             this.unschedule(this.power);
             this.Accelerating = false
-            // this.pauseTarget(this.power)
+            this.speed = this.MaxSpeed
+        }
+        this.node.emit("storgPower", this.powerStorage)
+    }
+
+    onKeyUp(e) {
+        switch (e.keyCode) {
+            case cc.macro.KEY.j:
+                this.keyList[e.keyCode] = false
+                break
+            case cc.macro.KEY.f:
+                this.keyList[e.keyCode] = false
+
+                break;
+            case cc.macro.KEY.s:
+                this.keyList[e.keyCode] = false
+                break;
+            case cc.macro.KEY.d:
+                this.rota = 5;
+                this.keyList[e.keyCode] = false;
+            case cc.macro.KEY.a:
+                this.rota = -5;
+                this.keyList[e.keyCode] = false;
+            default: break
+
+        }
+    }
+    onKeyDown(e) {
+        switch (e.keyCode) {
+            case cc.macro.KEY.f:
+                this.keyList[e.keyCode] = true
+                this.emitPower()
+                break;
+            case cc.macro.KEY.j:
+                this.keyList[e.keyCode] = true;
+                break;
+            case cc.macro.KEY.s:
+                this.keyList[e.keyCode] = true;
+                this.stop = !this.stop;
+                break;
+            case cc.macro.KEY.d:
+                this.rota = 5;
+                this.keyList[e.keyCode] = true;
+                break
+            case cc.macro.KEY.a:
+                this.rota = -5;
+                this.keyList[e.keyCode] = true;
+                break
+            default: break
         }
     }
 }

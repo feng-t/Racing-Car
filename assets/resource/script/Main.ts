@@ -11,7 +11,9 @@ import Player from "./Player";
 //  - [English] http://www.cocos2d-x.org/docs/creator/manual/en/scripting/life-cycle-callbacks.html
 
 const { ccclass, property } = cc._decorator;
-
+/**
+ * 控制页面的ui
+ */
 @ccclass
 export default class Main extends cc.Component {
 
@@ -22,14 +24,37 @@ export default class Main extends cc.Component {
     @property(cc.Node)
     speedUp: cc.Node
     PlayerScrpit: Player
-    
+
+    /**
+     * 氮气
+     */
+    @property(cc.Label)
+    power: cc.Label
+    /**
+     * 计时
+     */
+    @property(cc.Label)
+    timer: cc.Label
+    time: number = 0;
+    /**
+     * 开始
+     */
+    @property(cc.Label)
+    startLabel: cc.Label
+    Countdown: number = 3;
+
     onLoad() {
 
     }
 
     start() {
         this.PlayerScrpit = this.player.getComponent("Player");
-        
+        this.startLabel.string = "游戏倒计时"
+        this.timer.string = "0"
+        this.power.string = "0"
+        /**
+         * 漂移，加速
+         */
         if (this.drift && this.speedUp) {
             this.drift.on(cc.Node.EventType.TOUCH_START, function (e) {
                 this.PlayerScrpit.touch_start(2)
@@ -44,7 +69,39 @@ export default class Main extends cc.Component {
                 this.PlayerScrpit.touch_start(0)
             }, this)
         }
+        this.onPlayer();
     }
 
-    update(dt) { }
+    onPlayer() {
+        this.schedule(this.strCall, 1)
+        this.player.on("storgPower", function (power: string) {
+            this.power.string = power;
+        }, this)
+    }
+    update(dt) {
+        if (this.Countdown < 0) {
+            this.time += dt
+            const m = Math.floor(this.time / (60));
+            const s = Math.floor(this.time - (m * 60));
+            const ms = Math.floor((this.time - m * 60 - s) * 100)
+
+            this.timer.string = m + ":" + s + ":" + ms;
+        }
+    }
+
+    strCall = function () {
+        if (this.Countdown === 0) {
+            // this.stop = false;
+            // this.GameStart = true
+            this.player.emit("gameStart")//开始游戏
+
+            this.startLabel.node.destroy();
+            // 取消这个计时器
+            this.unschedule(this.strCall);
+            this.Countdown = -1;
+            return
+        }
+        this.startLabel.string = this.Countdown
+        this.Countdown--;
+    }
 }
