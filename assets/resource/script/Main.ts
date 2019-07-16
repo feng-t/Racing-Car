@@ -18,29 +18,35 @@ const { ccclass, property } = cc._decorator;
 export default class Main extends cc.Component {
 
     @property(cc.Node)
-    player: cc.Node
+    private player: cc.Node = null
     @property(cc.Node)
-    drift: cc.Node
+    private drift: cc.Node = null
     @property(cc.Node)
-    speedUp: cc.Node
+    private speedUp: cc.Node = null
+
     PlayerScrpit: Player
 
     /**
      * 氮气
      */
     @property(cc.Label)
-    power: cc.Label
+    private power: cc.Label = null
     /**
      * 计时
      */
     @property(cc.Label)
-    timer: cc.Label
+    private timer: cc.Label = null
     time: number = 0;
     /**
      * 开始
      */
     @property(cc.Label)
-    startLabel: cc.Label
+    private startLabel: cc.Label = null
+    /**
+     * 速度
+     */
+    @property(cc.Label)
+    private speed: cc.Label = null
     Countdown: number = 3;
 
     onLoad() {
@@ -52,6 +58,7 @@ export default class Main extends cc.Component {
         this.startLabel.string = "游戏倒计时"
         this.timer.string = "0"
         this.power.string = "0"
+        this.speed.string = "0"
         /**
          * 漂移，加速
          */
@@ -77,6 +84,9 @@ export default class Main extends cc.Component {
         this.player.on("storgPower", function (power: string) {
             this.power.string = power;
         }, this)
+        this.player.on("speed", function (v: number) {
+            this.speed.string = Math.floor(v).toString()
+        }, this);
     }
     update(dt) {
         if (this.Countdown < 0) {
@@ -84,7 +94,6 @@ export default class Main extends cc.Component {
             const m = Math.floor(this.time / (60));
             const s = Math.floor(this.time - (m * 60));
             const ms = Math.floor((this.time - m * 60 - s) * 100)
-
             this.timer.string = m + ":" + s + ":" + ms;
         }
     }

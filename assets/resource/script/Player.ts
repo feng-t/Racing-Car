@@ -6,29 +6,47 @@ export default class Player extends cc.Component {
 
 
     @property(cc.Camera)
-    Camera: cc.Camera
-    @property(cc.Node)
-    StartNode: cc.Node
+    private Camera: cc.Camera = null
+    @property({
+        type: cc.Node,
+        tooltip: "开始节点"
+    })
+    private StartNode: cc.Node = null
+    // @property(cc.Node)
+    // private SpeedNode: cc.Node = null
     /**
      * 轮胎轨迹
      */
-    @property(cc.Prefab)
-    c: cc.Prefab
+    @property({
+        type: cc.Prefab,
+        tooltip: "轮胎轨迹"
+    })
+    private c: cc.Prefab = null
     /**
      * 速度
      */
-    @property()
-    speed: number;
+    @property({
+        tooltip: "速度"
+    })
+    private speed: number = 0
     /**
      * 最大速度
      */
-    @property()
-    MaxSpeed: number;
+    @property({
+        tooltip: "最大速度"
+    })
+    private MaxSpeed: number = 400
     /**
      * 加速时长
      */
-    @property()
-    speedTime: number = 1;
+    @property({
+        tooltip: "加速时间"
+    })
+    private speedTime: number = 1;
+    // @property({
+    //     tooltip: "bgm"
+    // })
+    // private bgm: cc.AudioClip = null
     //加速度
     a;
     //----------------------------------------------//
@@ -39,6 +57,7 @@ export default class Player extends cc.Component {
     //计算时间
     Timeing: number = 0;
 
+    rSpeed: number = 0;
     dirRotation: number;
     body: cc.RigidBody;
     powerStorage: number = 0;//蓄力
@@ -53,6 +72,7 @@ export default class Player extends cc.Component {
     ring: number = -1
     //控制在反复调用的方法上只执行一次
     pm: boolean = false;
+
     Accelerating: boolean = false
 
     left: cc.Node;
@@ -66,6 +86,16 @@ export default class Player extends cc.Component {
         cc.director.getCollisionManager().enabled = true;
         this.enemyPool = new cc.NodePool();
         this.node.zIndex = 10;
+
+        cc.loader.loadRes("/map/游戏BGM1",cc.AudioClip,function(err,clip){
+            if (err) {
+                return
+            }
+            // console.log("加载完成");
+            // console.log(err,clip);
+            
+            cc.audioEngine.playMusic(clip,true);
+        })
 
         cc.director.getPhysicsManager().debugDrawFlags = cc.PhysicsManager.DrawBits.e_aabbBit |
             cc.PhysicsManager.DrawBits.e_pairBit |
@@ -110,22 +140,22 @@ export default class Player extends cc.Component {
         // }
         if (this.region) {
             if (this.vc && this.keyList[cc.macro.KEY.j]) {
-                //p 前进方向，朝向
+                this.Camera.zoomRatio += (1.2 - this.Camera.zoomRatio) / 10
+
                 let p = Math.atan2(this.node.x - this.vc.x, this.node.y - this.vc.y) * (180 / Math.PI);
-                p = this.region.node.rotation + p
-                // let ps = p + 90;
-                // this.dirRotation += (p + 90 - this.dirRotation)
-                // this.dirRotation = this.dirRotation >= 360 ? this.dirRotation - (Math.floor(this.dirRotation / 360)) * 360 : this.dirRotation
-                // console.log(this.dirRotation, p, this.node.rotation);
+                // console.log(p,this.node.rotation);
 
-                p = this.region.node.rotation === 180 ? p + 60 : p + 120
-                p = p >= 360 ? p - (Math.floor(p / 360)) * 360 : p
+                p = this.region.node.rotation === 180 ? p - 120 : p + 120
 
+                this.node.rotation = Math.abs(this.node.rotation) >= 360 ? this.node.rotation - (Math.floor(this.node.rotation / 360)) * 360 : this.node.rotation;
+                this.node.rotation += (p - this.node.rotation);
+                // this.node.rotation += (this.region.node.rotation === 180 ? - 90 : 90)
+                this.dirRotation += (this.node.rotation - this.dirRotation)
 
-                let r = this.node.rotation >= 360 ? this.node.rotation - (Math.floor(this.node.rotation / 360)) * 360 : this.node.rotation;
-                r = (p - r)
+                // let r = this.node.rotation >= 360 ? this.node.rotation - (Math.floor(this.node.rotation / 360)) * 360 : this.node.rotation;
+                // r = (p - r)
 
-                this.node.rotation += r;
+                // this.node.rotation += r;
                 this.dirRotation += (this.node.rotation + (this.region.node.rotation === 180 ? 30 : -30) - this.dirRotation)
                 //攒气 
                 this.storgPower();
@@ -149,33 +179,43 @@ export default class Player extends cc.Component {
                     this.Track.push(left)
                 }
                 if (!this.Accelerating) {
-                    this.speed = 100
+
+                    if (this.speed > 100) {
+
+                        this.rSpeed = this.speed - this.a * dt
+
+                    } else {
+                        this.rSpeed = 100
+
+                    }
+                    this.speed = this.rSpeed
                 }
             }
-        }
+        } else
+            this.Camera.zoomRatio += (1 - this.Camera.zoomRatio) / 10
+
         this.move(dt);
     }
     move(dt) {
+        this.dirRotation += (this.node.rotation - this.dirRotation) / 20
         var speed = this.body.linearVelocity;
-        if (this.keyList[cc.macro.KEY.a] && this.keyList[cc.macro.KEY.d]) {
-            // 避免同时按下两个键
-        } else if (this.keyList[cc.macro.KEY.a] || this.keyList[cc.macro.KEY.d]) {
-            this.node.rotation += this.rota //* 9;
-        }
         if (this.stop) {
             return
         }
-        this.dirRotation += (this.node.rotation - this.dirRotation) / 20
-        if (this.powerStorage < 100 && Math.abs(this.speed) > this.MaxSpeed) {
+
+        if (!this.Accelerating && Math.abs(this.speed) > this.MaxSpeed) {
             this.speed = this.MaxSpeed;
         } else if (Math.abs(this.speed) < this.MaxSpeed) {
-            this.speed += this.a * dt
+            if (!(this.region && this.vc && this.keyList[cc.macro.KEY.j])) {
+                this.speed += this.a * dt
+
+            }
         }
         speed.x = this.speed * Math.sin(this.dirRotation * Math.PI / 180);
         speed.y = this.speed * Math.cos(this.dirRotation * Math.PI / 180);
         this.body.linearVelocity = speed;
 
-
+        this.node.emit("speed", this.speed)
 
     }
 
@@ -186,11 +226,11 @@ export default class Player extends cc.Component {
 
             case 0:
                 this.keyList[cc.macro.KEY.f] = false
-                this.emitPower(false)
+                this.emitPower()
                 break
             case 1:
                 this.keyList[cc.macro.KEY.f] = true
-                this.emitPower(true)
+                this.emitPower()
                 break
             case 2:
                 //漂移
@@ -212,32 +252,45 @@ export default class Player extends cc.Component {
     onCollisionEnter(other, self) {
         if (other.node === this.StartNode) {
             this.ring++;
-            console.log("第"+this.ring+"圈");
-            
+            console.log("第" + this.ring + "圈");
+
         }
+
+
+
         // this.node.emit("test",function(){
         //     console.log("------------");
 
         // })
         this.region = other.getComponent(cc.RopeJoint);
-        if (this.region && this.keyList[cc.macro.KEY.j]) {
+        if (this.region) {
+
+
             this.region.enabled = false;
             this.region.connectedBody = self.getComponent(cc.RigidBody);
-
             this.vc = other.node.parent.parent.convertToNodeSpaceAR(other.node.convertToWorldSpaceAR(this.region.anchor))
-
             this.region.maxLength = this.getVec2(this.vc, this.node)
             this.region.enabled = this.keyList[cc.macro.KEY.j];
 
-            // let p = Math.atan2(this.node.x - this.vc.x, this.node.y - this.vc.y) * (180 / Math.PI);
-            // p = this.region.node.rotation + p
-            // p = this.region.node.rotation === 180 ? p + 60 : p + 120
-            // p = p >= 360 ? p - (Math.floor(p / 360)) * 360 : p
-            // let r = this.node.rotation >= 360 ? this.node.rotation - (Math.floor(this.node.rotation / 360)) * 360 : this.node.rotation;
-            // r = (p - r)
-            // this.node.rotation += r;
-            // this.dirRotation += (this.node.rotation - this.dirRotation) / 20
+            let p = Math.atan2(this.node.x - this.vc.x, this.node.y - this.vc.y) * (180 / Math.PI);
+
+            // console.log(p, this.node.rotation);
+
         }
+        // if (this.region && this.keyList[cc.macro.KEY.j]) {
+
+
+        //     this.region.enabled = false;
+        //     this.region.connectedBody = self.getComponent(cc.RigidBody);
+        //     this.vc = other.node.parent.parent.convertToNodeSpaceAR(other.node.convertToWorldSpaceAR(this.region.anchor))
+        //     this.region.maxLength = this.getVec2(this.vc, this.node)
+        //     this.region.enabled = this.keyList[cc.macro.KEY.j];
+
+        //     let p = Math.atan2(this.node.x - this.vc.x, this.node.y - this.vc.y) * (180 / Math.PI);
+
+        //     console.log(p, this.node.rotation);
+
+        // }
     }
 
 
@@ -249,12 +302,12 @@ export default class Player extends cc.Component {
     */
     onCollisionStay(other, self) {
 
-
+        // console.log(this.node.rotation);
 
         //设置在直道上保持直行
         if (!this.region) {
-            // p = (this.region.node.rotation > 90 || this.region.node.rotation < -90) ? p - 90 : p + 90
-            this.node.rotation += (other.node.rotation - this.node.rotation) / 20
+            this.node.rotation += (other.node.rotation - this.node.rotation)
+            this.dirRotation = other.node.rotation
         }
 
         if (this.keyList[cc.macro.KEY.j]) {
@@ -268,14 +321,12 @@ export default class Player extends cc.Component {
                 // this.vc = cc.v2(
                 //     other.node.convertToWorldSpaceAR(this.region.anchor).x - cc.view.getVisibleSize().width / 2,
                 //     other.node.convertToWorldSpaceAR(this.region.anchor).y - cc.view.getVisibleSize().height / 2)
-
                 this.vc = other.node.parent.parent.convertToNodeSpaceAR(other.node.convertToWorldSpaceAR(this.region.anchor))
                 this.region.maxLength = this.getVec2(this.vc, this.node)
                 this.region.enabled = this.keyList[cc.macro.KEY.j]
             }
         } else {
             if (this.region && !this.keyList[cc.macro.KEY.j]) {
-
                 this.region.enabled = false;
                 this.pm = false
             }
@@ -294,6 +345,7 @@ export default class Player extends cc.Component {
         if (joint) {
             joint.enabled = false;
         }
+        this.rSpeed = 0
     }
     /**
      * 计算两个向量的距离
@@ -321,9 +373,7 @@ export default class Player extends cc.Component {
     emitPower() {
 
         if (this.powerStorage === 100) {
-            console.log("加速");
-
-            this.speed = this.MaxSpeed + this.MaxSpeed * 0.2
+            this.speed = this.MaxSpeed * 1.2
             this.Accelerating = true;
             this.schedule(this.power, 0.05)
         }
@@ -352,10 +402,10 @@ export default class Player extends cc.Component {
                 this.keyList[e.keyCode] = false
                 break;
             case cc.macro.KEY.d:
-                this.rota = 5;
+                // this.rota = 5;
                 this.keyList[e.keyCode] = false;
             case cc.macro.KEY.a:
-                this.rota = -5;
+                // this.rota = -5;
                 this.keyList[e.keyCode] = false;
             default: break
 
@@ -375,11 +425,11 @@ export default class Player extends cc.Component {
                 this.stop = !this.stop;
                 break;
             case cc.macro.KEY.d:
-                this.rota = 5;
+                // this.rota = 5;
                 this.keyList[e.keyCode] = true;
                 break
             case cc.macro.KEY.a:
-                this.rota = -5;
+                // this.rota = -5;
                 this.keyList[e.keyCode] = true;
                 break
             default: break

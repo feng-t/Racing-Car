@@ -238,7 +238,7 @@
     "_srcBlendFactor": 770,
     "_dstBlendFactor": 771,
     "_spriteFrame": {
-      "__uuid__": "1ca4e4ee-11b1-4ca9-b944-739407fed886"
+      "__uuid__": "ba8404e2-39b5-4fa0-95a3-e48e45ef066c"
     },
     "_type": 0,
     "_sizeMode": 0,
@@ -288,8 +288,12 @@
       "__id__": 1
     },
     "_enabled": true,
-    "startStr": null,
     "Camera": null,
+    "StartNode": null,
+    "c": null,
+    "speed": 0,
+    "MaxSpeed": 400,
+    "speedTime": 1,
     "_id": ""
   },
   {

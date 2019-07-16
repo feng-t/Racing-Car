@@ -1,139 +1,320 @@
-// Learn TypeScript:
-//  - [Chinese] https://docs.cocos.com/creator/manual/zh/scripting/typescript.html
-//  - [English] http://www.cocos2d-x.org/docs/creator/manual/en/scripting/typescript.html
-// Learn Attribute:
-//  - [Chinese] https://docs.cocos.com/creator/manual/zh/scripting/reference/attributes.html
-//  - [English] http://www.cocos2d-x.org/docs/creator/manual/en/scripting/reference/attributes.html
-// Learn life-cycle callbacks:
-//  - [Chinese] https://docs.cocos.com/creator/manual/zh/scripting/life-cycle-callbacks.html
-//  - [English] http://www.cocos2d-x.org/docs/creator/manual/en/scripting/life-cycle-callbacks.html
+import Main from "./Main";
 
 const { ccclass, property } = cc._decorator;
-
 @ccclass
-export default class Player extends cc.Component {
+export default class Player1 extends cc.Component {
 
-    @property
-    MoveSpeed = 5//玩家移动速度 
-    @property(cc.Label)
-    le: cc.Label;
+
     @property(cc.Camera)
-    Camera: cc.Camera;
-
-
-    dirRotation: number = 0;//运动方向
-    rotas: number = 0;
-    pm: boolean = false;
-    stop = true;
-    body: cc.RigidBody;
-    vc: cc.Vec2;
-    region: cc.RopeJoint;
-    count = 3;
+    private Camera: cc.Camera = null
+    @property(cc.Node)
+    private StartNode: cc.Node = null
+    /**
+     * 轮胎轨迹
+     */
+    @property(cc.Prefab)
+    private c: cc.Prefab = null
+    /**
+     * 速度
+     */
+    @property()
+    private speed: number = 0
+    /**
+     * 最大速度
+     */
+    @property()
+    private MaxSpeed: number = 0
+    /**
+     * 加速时长
+     */
+    @property()
+    private speedTime: number = 1;
+    //加速度
+    a;
+    //----------------------------------------------//
     //按键
     keyList = []
+    //倒计时
+    Countdown = 3;
+    //计算时间
+    Timeing: number = 0;
 
+    rSpeed: number = 0;
+    dirRotation: number;
+    body: cc.RigidBody;
+    powerStorage: number = 0;//蓄力
+    rota: any;
+    //当前移动到的漂移节点
+    region: cc.RopeJoint;
+
+    //锚点位置
+    vc: cc.Vec2;
+    //游戏是否结束
+    stop: boolean = true;
+    ring: number = -1
+    //控制在反复调用的方法上只执行一次
+    pm: boolean = false;
+    Accelerating: boolean = false
+
+    left: cc.Node;
+    right: cc.Node;
+    enemyPool: cc.NodePool
+    Track = []
+    qu = []
+    taks: number = 0;
+    //----------------------------------------------//
     onLoad() {
+        this.a = (this.MaxSpeed - this.speed) / this.speedTime
         cc.director.getPhysicsManager().enabled = true;
+        cc.director.getCollisionManager().enabled = true;
+        this.enemyPool = new cc.NodePool();
+        this.node.zIndex = 10;
+
         cc.director.getPhysicsManager().debugDrawFlags = cc.PhysicsManager.DrawBits.e_aabbBit |
             cc.PhysicsManager.DrawBits.e_pairBit |
             cc.PhysicsManager.DrawBits.e_centerOfMassBit |
             cc.PhysicsManager.DrawBits.e_jointBit |
             cc.PhysicsManager.DrawBits.e_shapeBit
             ;
-    }
-    callback = function () {
-        if (this.count === 0) {
-            this.stop = false;
-            // this.le.node.active = false;
-            this.le.node.destroy();
-            // 在第六次执行回调时取消这个计时器
-            this.unschedule(this.callback);
-        }
-        this.le.string = this.count
-
-        this.count--;
-    }
-    start() {
-        this.le.string = "游戏倒计时";
-
-        this.schedule(this.callback, 1);
-        // this.Camera = cc.Camera.findCamera(this.node)
-        cc.director.getCollisionManager().enabled = true;
         cc.director.getCollisionManager().enabledDebugDraw = true;
+    }
 
-
-        this.dirRotation = this.node.rotation;
+    start() {
+        // this.startStr.string = "游戏倒计时"
+        // this.dq.string = "0"
+        // this.schedule(this.strCall, 1)
+        this.node.rotation = this.node.rotation >= 360 ? this.node.rotation / 360 : this.node.rotation
+        this.body = this.getComponent(cc.RigidBody);
+        this.left = this.node.getChildByName("left");// getComponent("")
+        this.right = this.node.getChildByName("right");//this.getComponent("")
         cc.systemEvent.on(cc.SystemEvent.EventType.KEY_DOWN, this.onKeyDown, this);
         cc.systemEvent.on(cc.SystemEvent.EventType.KEY_UP, this.onKeyUp, this);
-        this.body = this.getComponent(cc.RigidBody);
-        // this.collider.node.on(cc.Node.EventType.TOUCH_START,this.onCollisionEnter)
+        //前进方向
+        this.dirRotation = this.node.rotation
+        this.onEvent();
+    }
+    onEvent() {
+        this.node.on("gameStart", function () {
+            //游戏开始
+            this.stop = false
+        }, this);
     }
 
-    update(dt: any) {
+    update(dt) {
+
+        //氮气
+        // this.dq.string = Math.floor(this.powerStorage).toString()
+        if (this.Camera) {
+            this.Camera.node.x = this.node.x
+            this.Camera.node.y = this.node.y
+        }
+        // if (this.left && this.right) {
+        //     console.log();
+        // }
         if (this.region) {
-            if (this.vc && this.keyList[32]) {
+            if (this.vc && this.keyList[cc.macro.KEY.j]) {
+
+                this.Camera.zoomRatio += (1.2 - this.Camera.zoomRatio) / 10
+                //p 前进方向，朝向
                 let p = Math.atan2(this.node.x - this.vc.x, this.node.y - this.vc.y) * (180 / Math.PI);
-                p = this.region.node.rotation + p + 90
-                this.node.rotation += (p - this.node.rotation) / 2
+                console.log(p,this.node.rotation);
+                p = this.region.node.rotation === 180 ? p - 120 : p + 120
+                p = Math.abs(p) >= 360 ? p - (Math.floor(p / 360)) * 360 : p
+                this.node.rotation = Math.abs(this.node.rotation) >= 360 ? Math.abs(this.node.rotation) - (Math.floor(Math.abs(this.node.rotation) / 360)) * 360 : this.node.rotation
+                this.dirRotation = Math.abs(this.dirRotation) >= 360 ? Math.abs(this.dirRotation) - (Math.floor(Math.abs(this.dirRotation) / 360)) * 360 : this.dirRotation
+
+                let r = Math.abs(this.node.rotation) >= 360 ? this.node.rotation - (Math.floor(this.node.rotation / 360)) * 360 : this.node.rotation;
+                r = (p - r)
+                // this.node.rotation += r;
+
+
+                this.dirRotation += (this.node.rotation + (this.region.node.rotation === 180 ? 30 : -30) - this.dirRotation)
+                //攒气 
+                this.storgPower();
+                //留下轮胎印
+                if (this.Track.length < 20) {
+                    let right = this.enemyPool.size() > 0 ? this.enemyPool.get() : cc.instantiate(this.c);
+                    let left = this.enemyPool.size() > 0 ? this.enemyPool.get() : cc.instantiate(this.c);
+                    right.setPosition(this.node.parent.convertToNodeSpaceAR(this.node.convertToWorldSpaceAR(this.right.getPosition())));
+                    left.setPosition(this.node.parent.convertToNodeSpaceAR(this.node.convertToWorldSpaceAR(this.left.getPosition())));
+                    this.node.parent.addChild(right);
+                    this.node.parent.addChild(left);
+                    this.Track.push(right)
+                    this.Track.push(left)
+                } else {//场上有20个
+
+                    let right = this.Track.shift();
+                    let left = this.Track.shift();
+                    right.setPosition(this.node.parent.convertToNodeSpaceAR(this.node.convertToWorldSpaceAR(this.right.getPosition())));
+                    left.setPosition(this.node.parent.convertToNodeSpaceAR(this.node.convertToWorldSpaceAR(this.left.getPosition())));
+                    this.Track.push(right)
+                    this.Track.push(left)
+                }
+                if (!this.Accelerating) {
+                    if (this.rSpeed > 100) {
+                        this.rSpeed = this.speed / 2
+                    } else {
+                        this.rSpeed = 100
+                    }
+                    this.speed = this.rSpeed
+                }
+            } else {
+                this.Camera.zoomRatio += (1 - this.Camera.zoomRatio) / 10
             }
         }
-        this.move()
+        this.move(dt);
     }
-
-    //移动
-    move() {
+    move(dt) {
+        this.taks = this.taks < 100 ? this.taks + 1 : this.taks;
+        if (this.taks === 100) {
+            this.taks = 0;
+            for (let index = 0; index < this.qu.length; index++) {
+                const element = this.qu[index];
+                console.log(element);
+                
+            }
+            // console.log( this.qu);
+        }
         var speed = this.body.linearVelocity;
-
         if (this.keyList[cc.macro.KEY.a] && this.keyList[cc.macro.KEY.d]) {
             // 避免同时按下两个键
         } else if (this.keyList[cc.macro.KEY.a] || this.keyList[cc.macro.KEY.d]) {
-            this.node.rotation += this.rotas //* 9;
+            this.node.rotation += this.rota //* 9;
         }
-        this.dirRotation += (this.node.rotation - this.dirRotation) / 2
         if (this.stop) {
             return
         }
-
-        let x = (this.keyList[cc.macro.KEY.w] ? 10 : 5) * Math.cos(this.dirRotation * Math.PI / 180)
-        let y = (this.keyList[cc.macro.KEY.w] ? 10 : 5) * Math.sin(this.dirRotation * Math.PI / 180)
-        // let sx = this.node.x;// += y;// = this.node.x - x;
-        // let sy = this.node.y;// += x;// = this.node.y + y;
-        // const action = cc.moveTo(1, sx + y, sy + x);
-        // this.node.runAction(action);
-
-        speed.x += y * 2;
-        speed.y += x * 2;
+        this.dirRotation += (this.node.rotation - this.dirRotation) / 20
+        if (this.powerStorage < 100 && Math.abs(this.speed) > this.MaxSpeed) {
+            this.speed = this.MaxSpeed;
+        } else if (Math.abs(this.speed) < this.MaxSpeed) {
+            this.speed += this.a * dt
+        }
+        speed.x = this.speed * Math.sin(this.dirRotation * Math.PI / 180);
+        speed.y = this.speed * Math.cos(this.dirRotation * Math.PI / 180);
         this.body.linearVelocity = speed;
 
+
+
     }
+
+    touch_start(c) {
+
+
+        switch (c) {
+
+            case 0:
+                this.keyList[cc.macro.KEY.f] = false
+                this.emitPower()
+                break
+            case 1:
+                this.keyList[cc.macro.KEY.f] = true
+                this.emitPower()
+                break
+            case 2:
+                //漂移
+                this.keyList[cc.macro.KEY.j] = true
+
+                break
+            case 3:
+                this.keyList[cc.macro.KEY.j] = false
+
+                break
+        }
+    }
+
     /**
      * 开始碰撞
      * @param other 
      * @param self 
      */
     onCollisionEnter(other, self) {
+        this.qu[other.name]=true
+        if (other.node === this.StartNode) {
+            this.ring++;
+            console.log("第" + this.ring + "圈")
+        }
+        // this.node.emit("test",function(){
+        //     console.log("------------");
+
+        // })
         this.region = other.getComponent(cc.RopeJoint);
-        if (this.region && this.keyList[32]) {
+        if (this.region && this.keyList[cc.macro.KEY.j]) {
             this.region.enabled = false;
             this.region.connectedBody = self.getComponent(cc.RigidBody);
-            this.vc = cc.v2(
-                other.node.convertToWorldSpaceAR(this.region.anchor).x - cc.view.getVisibleSize().width / 2,
-                other.node.convertToWorldSpaceAR(this.region.anchor).y - cc.view.getVisibleSize().height / 2)
+
+            this.vc = other.node.parent.parent.convertToNodeSpaceAR(other.node.convertToWorldSpaceAR(this.region.anchor))
+
             this.region.maxLength = this.getVec2(this.vc, this.node)
-            this.region.enabled = this.keyList[32];
+            this.region.enabled = this.keyList[cc.macro.KEY.j];
+
+            // let p = Math.atan2(this.node.x - this.vc.x, this.node.y - this.vc.y) * (180 / Math.PI);
+            // p = this.region.node.rotation + p
+            // p = this.region.node.rotation === 180 ? p + 60 : p + 120
+            // p = p >= 360 ? p - (Math.floor(p / 360)) * 360 : p
+            // let r = this.node.rotation >= 360 ? this.node.rotation - (Math.floor(this.node.rotation / 360)) * 360 : this.node.rotation;
+            // r = (p - r)
+            // this.node.rotation += r;
+            // this.dirRotation += (this.node.rotation - this.dirRotation) / 20
         }
     }
-    /**
-     * 获取父节点下的子节点的世界坐标
-     * @param node 
-     * @param ds 
-     */
-    getWordXY(node, ds: cc.Vec2) {
-        return cc.v2(
-            node.convertToWorldSpaceAR(ds).x - cc.view.getVisibleSize().width / 2,
-            node.convertToWorldSpaceAR(ds).y - cc.view.getVisibleSize().height / 2
-        )
 
+
+    /**
+    * TODO
+    * 持续碰撞
+    * @param other 
+    * @param self
+    */
+    onCollisionStay(other:cc.CircleCollider, self) {
+        this.qu[other.name]=true
+       
+
+        //设置在直道上保持直行
+        if (!this.region) {
+            // p = (this.region.node.rotation > 90 || this.region.node.rotation < -90) ? p - 90 : p + 90
+            this.node.rotation += (other.node.rotation - this.node.rotation) / 20
+        }
+
+        if (this.keyList[cc.macro.KEY.j]) {
+            let region = other.getComponent(cc.RopeJoint);
+            this.region = region ? region : this.region;
+            if (this.region && !this.pm) {
+                this.pm = this.keyList[cc.macro.KEY.j];
+                // this.region.enabled = this.keyList[cc.macro.KEY.j]
+                this.region.enabled = false;
+                this.region.connectedBody = self.getComponent(cc.RigidBody);
+                // this.vc = cc.v2(
+                //     other.node.convertToWorldSpaceAR(this.region.anchor).x - cc.view.getVisibleSize().width / 2,
+                //     other.node.convertToWorldSpaceAR(this.region.anchor).y - cc.view.getVisibleSize().height / 2)
+
+                this.vc = other.node.parent.parent.convertToNodeSpaceAR(other.node.convertToWorldSpaceAR(this.region.anchor))
+                this.region.maxLength = this.getVec2(this.vc, this.node)
+                this.region.enabled = this.keyList[cc.macro.KEY.j]
+            }
+        } else {
+            if (this.region && !this.keyList[cc.macro.KEY.j]) {
+
+                this.region.enabled = false;
+                this.pm = false
+            }
+        }
+
+    }
+    /**
+    * 结束碰撞
+    * @param other 碰撞到的物体
+    * @param self 自己
+    */
+    onCollisionExit(other, self) {
+        this.qu[other.name]=false
+        this.region = null;
+        this.pm = false;
+        var joint: cc.RopeJoint = other.getComponent(cc.RopeJoint);
+        if (joint) {
+            joint.enabled = false;
+        }
+        this.rSpeed = 0
     }
     /**
      * 计算两个向量的距离
@@ -143,125 +324,86 @@ export default class Player extends cc.Component {
     getVec2(c1: any, c2: any) {
         return Math.sqrt(Math.pow(c1.x - c2.x, 2) + Math.pow(c1.y - c2.y, 2))
     }
+
+
+
+    //积攒氮气
+    storgPower() {
+        if (this.Accelerating) {
+            return
+        }
+        this.powerStorage = this.powerStorage < 100 ? this.powerStorage + 0.5 : 100
+        this.node.emit("storgPower", Math.floor(this.powerStorage).toString())//发射事件，正在攒气
+    }
     /**
-     * TODO
-     * 持续碰撞
-     * @param other 
-     * @param self
+     * 使用氮气加速
+     * @param b 取消与使用
      */
-    onCollisionStay(other, self) {
-        // if (!this.region) {
-        //     let p = Math.atan2(this.node.x - other.node.x, this.node.y - other.node.y) * (180 / Math.PI);
-        //     p = other.node.rotation + p
-        //     // p = (this.region.node.rotation > 90 || this.region.node.rotation < -90) ? p - 90 : p + 90
-        //     this.node.rotation += (p - this.node.rotation) / 2
-        // }
-        if (this.keyList[32]) {
-            let region = other.getComponent(cc.RopeJoint);
-            this.region = region ? region : this.region;
-            if (this.region && !this.pm) {
+    emitPower() {
 
-                this.pm = this.keyList[32];
-                this.region.enabled = this.keyList[32]
-                this.region.enabled = false;
-                this.region.connectedBody = self.getComponent(cc.RigidBody);
-                this.vc = cc.v2(
-                    other.node.convertToWorldSpaceAR(this.region.anchor).x - cc.view.getVisibleSize().width / 2,
-                    other.node.convertToWorldSpaceAR(this.region.anchor).y - cc.view.getVisibleSize().height / 2)
-                this.region.maxLength = this.getVec2(this.vc, this.node)
-                this.region.enabled = this.keyList[32];
+        if (this.powerStorage === 100) {
+            console.log("加速");
 
-
-                // if (this.keyList[32]) {
-
-                //     let p = Math.atan2(this.node.x - this.vc.x, this.node.y - this.vc.y) * (180 / Math.PI);
-                //     p = this.region.node.rotation + p + 90
-                //     this.node.rotation += (p - this.node.rotation) / 2
-
-                // }
-
-            }
+            this.speed = this.MaxSpeed + this.MaxSpeed * 0.2
+            this.Accelerating = true;
+            this.schedule(this.power, 0.05)
         }
 
     }
-    /**
-     * 结束碰撞
-     * @param other 碰撞到的物体
-     * @param self 自己
-     */
-    onCollisionExit(other, self) {
-        this.region = null;
-        this.pm = false;
-        var joint: cc.RopeJoint = other.getComponent(cc.RopeJoint);
-        if (joint) {
-            joint.enabled = false;
+    power = function () {
+        this.powerStorage--;
+        if (this.powerStorage === 0) {
+            this.unschedule(this.power);
+            this.Accelerating = false
+            this.speed = this.MaxSpeed
         }
+        this.node.emit("storgPower", this.powerStorage)
     }
-    // 物理碰撞，只在两个碰撞体开始接触时被调用一次
-    onBeginContact(contact, selfCollider, otherCollider) {
 
-    }
     onKeyUp(e) {
-
         switch (e.keyCode) {
-            case 32: if (this.region) {
-                this.region.enabled = false
-                this.pm = false
-            }
+            case cc.macro.KEY.j:
                 this.keyList[e.keyCode] = false
                 break
-            case cc.macro.KEY.a:
-                //左转
+            case cc.macro.KEY.f:
                 this.keyList[e.keyCode] = false
-                break;
 
-            case cc.macro.KEY.d:
-                //右转
-                this.keyList[e.keyCode] = false
-                break;
-            case cc.macro.KEY.w:
-                //前进
-                this.keyList[e.keyCode] = false
                 break;
             case cc.macro.KEY.s:
-                //后退
                 this.keyList[e.keyCode] = false
                 break;
+            case cc.macro.KEY.d:
+                this.rota = 5;
+                this.keyList[e.keyCode] = false;
+            case cc.macro.KEY.a:
+                this.rota = -5;
+                this.keyList[e.keyCode] = false;
             default: break
+
         }
     }
-    onKeyDown(e: { keyCode: any; }) {
-
+    onKeyDown(e) {
         switch (e.keyCode) {
-            case 32:
+            case cc.macro.KEY.f:
                 this.keyList[e.keyCode] = true
+                this.emitPower()
                 break;
-            case cc.macro.KEY.a:
+            case cc.macro.KEY.j:
                 this.keyList[e.keyCode] = true;
-                this.rotas = -1;
-                break;
-            case cc.macro.KEY.d:
-                this.keyList[e.keyCode] = true;
-                this.rotas = 1;
-                //右转
-                break;
-            case cc.macro.KEY.w:
-                //前进
-                this.keyList[e.keyCode] = true;
-                this.stop = false;
                 break;
             case cc.macro.KEY.s:
-                this.stop = true;
                 this.keyList[e.keyCode] = true;
-                //后退
+                this.stop = !this.stop;
                 break;
+            case cc.macro.KEY.d:
+                this.rota = 5;
+                this.keyList[e.keyCode] = true;
+                break
+            case cc.macro.KEY.a:
+                this.rota = -5;
+                this.keyList[e.keyCode] = true;
+                break
             default: break
         }
-        // if (this.vc && this.region.enabled && this.keyList[32]) {
-        //     const p = Math.atan2(this.node.x - this.vc.x, this.node.y - this.vc.y)  * (180 / Math.PI)-90;
-        //     // this.node.runAction(cc.rotateBy(0.1,  +)
-        //     this.node.rotation += (this.node.rotation - p)
-        // }
     }
-
 }
