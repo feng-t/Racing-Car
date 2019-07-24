@@ -24,7 +24,7 @@
     ]
   ],
   "design-resolution-height": 640,
-  "design-resolution-width": 960,
+  "design-resolution-width": 360,
   "excluded-modules": [],
   "facebook": {
     "appID": "",
@@ -44,13 +44,13 @@
     "map",
     "UI"
   ],
-  "last-module-event-record-time": 1562580425505,
+  "last-module-event-record-time": 1563448040737,
   "simulator-orientation": false,
   "simulator-resolution": {
     "height": 640,
     "width": 960
   },
-  "start-scene": "current",
   "use-customize-simulator": true,
-  "use-project-simulator-setting": false
+  "use-project-simulator-setting": false,
+  "start-scene": "current"
 }

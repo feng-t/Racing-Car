@@ -15,13 +15,15 @@
     "subContext": ""
   },
   "encryptJs": true,
-  "excludeScenes": [],
+  "excludeScenes": [
+    "99b09e91-29e4-4bed-8797-3bc8538c0875"
+  ],
   "fb-instant-games": {},
   "includeSDKBox": false,
   "inlineSpriteFrames": true,
   "inlineSpriteFrames_native": true,
   "md5Cache": false,
-  "mergeStartScene": false,
+  "mergeStartScene": true,
   "optimizeHotUpdate": false,
   "orientation": {
     "landscapeLeft": true,
@@ -35,12 +37,12 @@
     "orientation": "portrait",
     "zip": false
   },
-  "startScene": "28aca5f0-c057-4794-a74a-944706f789f5",
+  "startScene": "01501b02-dde4-4b6d-a483-65bf44410ee5",
   "title": "PacingCar",
   "webOrientation": "auto",
   "wechatgame": {
     "REMOTE_SERVER_ROOT": "",
-    "appid": "wx6ac3f5090a6b99c5",
+    "appid": "wx8154275a55b10c58",
     "orientation": "portrait",
     "separate_engine": false,
     "subContext": ""
