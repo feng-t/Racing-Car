@@ -32,10 +32,25 @@ export default class NewClass extends cc.Component {
         //     cocos: "ss",
         //     dd: "test"
         // });
-
+        // HttpUtils.Request({
+        //     url: "http://localhost:8080/user/login",
+        //     type: "post",
+        //     data: {
+        //         code: "sdfsdf",
+        //         userInfo: {}
+        //     },
+        //     success: function (res) {
+        //         console.log(res);
+        //         if (res && res.flag) {
+        //             cc.director.loadScene("Home")
+        //         }
+        //     }
+        // })
 
         if (this.wx) {
             let that = this;
+
+
 
             that.wx.getUserInfo({
                 success(ures) {
@@ -50,7 +65,7 @@ export default class NewClass extends cc.Component {
                                         userInfo: ures.userInfo
                                     },
                                     success: function (res) {
-                                        console.log(res);
+                                        res = res.data;
                                         if (res && res.flag) {
                                             cc.director.loadScene("Home")
                                         }
@@ -61,6 +76,7 @@ export default class NewClass extends cc.Component {
                     })
                 }
             })
+
             // this.wx.getUserInfo({
             //     success: function (urs) {
             //         that.wx.login({
@@ -77,7 +93,8 @@ export default class NewClass extends cc.Component {
             //                             userInfo: urs.userInfo
             //                         },
             //                         success(rs) {
-            //                             // console.log(rs);
+            //                             rs = rs.data
+            //                             console.log(rs);
             //                             if (rs && rs.flag) {
             //                                 cc.director.loadScene("Home")
             //                             }

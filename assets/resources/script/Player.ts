@@ -50,10 +50,6 @@ export default class Player extends cc.Component {
         tooltip: "氮气积攒时间"
     })
     private powerTime: number = 3;
-    // @property({
-    //     tooltip: "bgm"
-    // })
-    // private bgm: cc.AudioClip = null
     //加速度
     a;
     powerA: number;
@@ -116,11 +112,13 @@ export default class Player extends cc.Component {
         drive: "drive",
 
     }
-    MaxZoomRatio: number = 0.5;
-    MinZoomRatio: number = 0.3;
+    MaxZoomRatio: number = 0.6;
+    MinZoomRatio: number = 0.4;
+    zoomN:number=0;
+    zoomF: boolean = false;
+
     //----------------------------------------------//
     onLoad() {
-        console.log(this.stateEumm.stop);
 
         this.a = (this.MaxSpeed - this.speed) / this.speedTime
         this.powerA = (100 - this.powerStorage) / this.powerTime
@@ -133,12 +131,12 @@ export default class Player extends cc.Component {
         /**
          * 显示物理边框
          */
-        // cc.director.getPhysicsManager().debugDrawFlags = cc.PhysicsManager.DrawBits.e_aabbBit |
-        //     cc.PhysicsManager.DrawBits.e_pairBit |
-        //     cc.PhysicsManager.DrawBits.e_centerOfMassBit |
-        //     cc.PhysicsManager.DrawBits.e_jointBit |
-        //     cc.PhysicsManager.DrawBits.e_shapeBit;
-        // cc.director.getCollisionManager().enabledDebugDraw = true;
+        cc.director.getPhysicsManager().debugDrawFlags = cc.PhysicsManager.DrawBits.e_aabbBit |
+            cc.PhysicsManager.DrawBits.e_pairBit |
+            cc.PhysicsManager.DrawBits.e_centerOfMassBit |
+            cc.PhysicsManager.DrawBits.e_jointBit |
+            cc.PhysicsManager.DrawBits.e_shapeBit;
+        cc.director.getCollisionManager().enabledDebugDraw = true;
     }
 
     start() {
@@ -255,7 +253,8 @@ export default class Player extends cc.Component {
                     this.Track.push(left)
                 }
                 if (!this.Accelerating) {
-                    let cp = 400;
+                    //漂移衰减速度
+                    let cp = this.MaxSpeed/2;
                     if (this.speed > cp) {
                         this.rSpeed = this.speed - ((this.a * dt) / 2)
                     } else {
@@ -267,7 +266,17 @@ export default class Player extends cc.Component {
         } else {
             this.startdrift = false;
             this.NewState = this.stateEumm.drive;
-            this.Camera.zoomRatio += (this.MinZoomRatio - this.Camera.zoomRatio) / 10
+            if (!this.zoomF) {
+                this.Camera.zoomRatio += (this.MinZoomRatio - this.Camera.zoomRatio) / 10
+            } else {
+                this.Camera.zoomRatio += (this.MinZoomRatio - 0.2 - this.Camera.zoomRatio) / 10
+                this.zoomN++;
+                if(this.zoomN>50){
+                    this.zoomF=false
+                    this.zoomN=0;
+                }
+            }
+
         }
     }
     move(dt) {
@@ -300,7 +309,7 @@ export default class Player extends cc.Component {
             case 1:
                 this.keyList.set(cc.macro.KEY.f, true)
                 this.emitPower()
-                this.zoom();
+                
                 break
             case 2:
                 //漂移
@@ -318,19 +327,19 @@ export default class Player extends cc.Component {
      * @param self 
      */
     onCollisionEnter(other, self) {
-        // console.log("dd");
-
         if (this.coll.indexOf(other) === -1) {
             this.coll.push(other)
         }
-        this.oth = this.oth ? this.oth : this.coll[0]
+        if (this.oth && Player.isJoint(this.oth)) {
+            this.oth = this.oth ? this.oth : this.coll[0]
+        } else {
+            this.oth = other;
+        }
         if (other.node === this.StartNode) {
             this.ring++;
             console.log("第" + this.ring + "圈");
         }
     }
-
-
     /**
     * TODO  
     * 持续碰撞
@@ -338,21 +347,15 @@ export default class Player extends cc.Component {
     * @param self
     */
     onCollisionStay(other, self) {
-
-        console.log(this.oth.node.name);
-
         if (this.coll.length > 1) {
             if (!this.keyList.get(cc.macro.KEY.j)) {
-                /**
-                 * 松开就到这里
-                 */
-                let s = this.oth
+                let s = -1
                 this.coll.forEach((v, i, []) => {
                     if (!Player.isJoint(v)) {
-                        s = v
+                        s = s > i ? s : i;
                     }
                 })
-                this.oth = s;
+                this.oth = s > -1 ? this.coll[s] : this.oth;
                 this.down = false;
             } else {
                 /**
@@ -368,16 +371,14 @@ export default class Player extends cc.Component {
                     this.oth = s > -1 ? this.coll[s] : this.oth;
                     this.down = true;
                 }
-
             }
         } else {
-
+            this.down = this.keyList.get(cc.macro.KEY.j) || false;
             if (this.coll.length > 0) {
                 this.oth = this.coll[0];
             }
         }
         // console.log(this.oth.node.name,Player.isJoint(this.oth));
-
         //强行纠正
         if (!this.keyList.get(cc.macro.KEY.j)) {
             if (!Player.isJoint(this.oth)) {
@@ -388,7 +389,6 @@ export default class Player extends cc.Component {
                         this.node.rotation = ro;
                         this.dirRotation = dir;
                     }
-
                 } else if (this.oth.node.rotation > 0 && this.node.rotation < 0) {
                     let ro = this.node.rotation + 360;
                     let dir = this.dirRotation + 360;
@@ -396,9 +396,7 @@ export default class Player extends cc.Component {
                         this.node.rotation = ro;
                         this.dirRotation = dir;
                     }
-
                 }
-
                 this.node.rotation += (this.oth.node.rotation - this.node.rotation) / 10
                 this.dirRotation += (this.oth.node.rotation - this.dirRotation) / 10
                 if (this.keyList.get(cc.macro.KEY.j)) {
@@ -407,7 +405,6 @@ export default class Player extends cc.Component {
                 }
             }
         }
-
         if (this.keyList.get(cc.macro.KEY.j)) {
             let region = this.oth.getComponent(cc.RopeJoint);
             this.region = region ? region : this.region;
@@ -432,8 +429,8 @@ export default class Player extends cc.Component {
     * @param self 自己
     */
     onCollisionExit(other, self) {
-        
-        this.node.emit(CusEvent.outNode, other,this.coll[this.coll.length-1])
+
+        this.node.emit(CusEvent.outNode, other, this.coll[this.coll.length - 1])
 
         let i = -1;
         if ((i = this.coll.indexOf(other)) > -1) {
@@ -478,7 +475,8 @@ export default class Player extends cc.Component {
     emitPower() {
 
         if (this.powerStorage > 0) {
-            this.speed = this.MaxSpeed * 1.2
+            this.zoom();
+            this.speed = this.MaxSpeed * 1.5
             this.Accelerating = true;
             this.schedule(this.power, 0.05)
         }
@@ -486,12 +484,7 @@ export default class Player extends cc.Component {
     }
 
     zoom() {
-        console.log("fd");
-
-        this.Camera.zoomRatio += (this.MaxZoomRatio - this.Camera.zoomRatio)
-        this.scheduleOnce(() => {
-            this.Camera.zoomRatio += (this.MaxZoomRatio - this.Camera.zoomRatio)
-        }, 1000)
+        this.zoomF = true;
     }
     power = function () {
         this.powerStorage -= this.powerA * 0.05;
@@ -522,8 +515,6 @@ export default class Player extends cc.Component {
         }
     }
     onKeyDown(e) {
-        // console.log(this.content);
-
         switch (e.keyCode) {
             case cc.macro.KEY.f: this.keyList.set(e.keyCode, true)
                 this.emitPower()

@@ -16,15 +16,17 @@ export default class GameStart extends cc.Component {
     @property(cc.Button)
     btn: cc.Button = null;
 
-
-
+    @property(cc.Node)
+    rankBtn: cc.Node = null;
+    @property(cc.Prefab)
+    rank: cc.Prefab = null;
     // LIFE-CYCLE CALLBACKS:
 
     onLoad() {
     }
 
     start() {
-       
+
         cc.director.preloadScene("open1", (c: number, t: number, i: any) => {
             //load
 
@@ -36,9 +38,20 @@ export default class GameStart extends cc.Component {
             this.btn.node.on("click", function () {
                 cc.director.loadScene("open1")
             }, this)
+            
+            this.rankBtn.on(cc.Node.EventType.TOUCH_START, function (e) {
+                let n:cc.Node
+                if(n=this.node.getChildByName("bot")){
+                    n.active=true;
+                    return
+                }
+                n = cc.instantiate(this.rank);
+                this.node.addChild(n)
+            }.bind(this))
+            
         })
-
-
+        // this.node.addChild(cc.instantiate(this.rank))
+        
     }
 
     // update (dt) {}
