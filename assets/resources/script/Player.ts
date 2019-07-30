@@ -6,16 +6,12 @@ const { ccclass, property } = cc._decorator;
 @ccclass
 export default class Player extends cc.Component {
 
-
-    @property(cc.Camera)
-    private Camera: cc.Camera = null
+    private Camera: cc.Camera;// = null
     @property({
         type: cc.Node,
         tooltip: "开始节点"
     })
-    private StartNode: cc.Node = null
-    // @property(cc.Node)
-    // private SpeedNode: cc.Node = null
+    public StartNode: cc.Node = null
     /**
      * 轮胎轨迹
      */
@@ -51,7 +47,7 @@ export default class Player extends cc.Component {
     })
     private powerTime: number = 3;
     //加速度
-    a;
+    speedA: number;
     powerA: number;
     //----------------------------------------------//
     //按键
@@ -114,35 +110,54 @@ export default class Player extends cc.Component {
     }
     MaxZoomRatio: number = 0.6;
     MinZoomRatio: number = 0.4;
-    zoomN:number=0;
+    zoomN: number = 0;
     zoomF: boolean = false;
+    P: number;
+    init(data: {
+        MaxSpeed: number,
+        speedTime: number,
+        powerTime: number,
+        sf: cc.SpriteFrame, StartNode
+    }) {
+        this.MaxSpeed = data.MaxSpeed;
+        this.speedTime = data.speedTime;
+        this.powerTime = data.powerTime;
+        this.node.getComponent(cc.Sprite).spriteFrame = data.sf
+        this.StartNode = data.StartNode
+        let xy: cc.Vec2 = this.StartNode.getPosition();
+        xy.y -= 300;
+        this.node.setPosition(xy)
+        console.log(this.Camera);
 
+    }
     //----------------------------------------------//
     onLoad() {
 
-        this.a = (this.MaxSpeed - this.speed) / this.speedTime
+
+        this.Camera = cc.Camera.main;
+        if (this.Camera) {
+            this.Camera.node.x = this.node.x
+            this.Camera.node.y = this.node.y
+        }
+        this.speedA = (this.MaxSpeed - this.speed) / this.speedTime
         this.powerA = (100 - this.powerStorage) / this.powerTime
 
-        cc.director.getPhysicsManager().enabled = true;
-        cc.director.getCollisionManager().enabled = true;
+
         this.enemyPool = new cc.NodePool();
         this.node.zIndex = 10;
 
         /**
          * 显示物理边框
          */
-        cc.director.getPhysicsManager().debugDrawFlags = cc.PhysicsManager.DrawBits.e_aabbBit |
-            cc.PhysicsManager.DrawBits.e_pairBit |
-            cc.PhysicsManager.DrawBits.e_centerOfMassBit |
-            cc.PhysicsManager.DrawBits.e_jointBit |
-            cc.PhysicsManager.DrawBits.e_shapeBit;
-        cc.director.getCollisionManager().enabledDebugDraw = true;
+        // cc.director.getPhysicsManager().debugDrawFlags = cc.PhysicsManager.DrawBits.e_aabbBit |
+        //     cc.PhysicsManager.DrawBits.e_pairBit |
+        //     cc.PhysicsManager.DrawBits.e_centerOfMassBit |
+        //     cc.PhysicsManager.DrawBits.e_jointBit |
+        //     cc.PhysicsManager.DrawBits.e_shapeBit;
+        // cc.director.getCollisionManager().enabledDebugDraw = true;
     }
 
     start() {
-        // this.startStr.string = "游戏倒计时"
-        // this.dq.string = "0"
-        // this.schedule(this.strCall, 1)
         this.node.rotation = this.node.rotation >= 360 ? this.node.rotation / 360 : this.node.rotation
         this.body = this.getComponent(cc.RigidBody);
         this.left = this.node.getChildByName("left");// getComponent("")
@@ -227,9 +242,10 @@ export default class Player extends cc.Component {
                 this.Camera.zoomRatio += (this.MaxZoomRatio - this.Camera.zoomRatio) / 10
                 let p = Math.atan2(this.node.x - this.vc.x, this.node.y - this.vc.y) * (180 / Math.PI);
                 p = type === "180" ? p - 120 : p + 120
+                this.P = p;
                 this.node.rotation = Math.abs(this.node.rotation) >= 360 ? this.node.rotation - (Math.floor(this.node.rotation / 360)) * 360 : this.node.rotation;
                 this.node.rotation += (p - this.node.rotation);
-                this.dirRotation += (this.node.rotation - this.dirRotation)
+                // this.dirRotation += (this.node.rotation - this.dirRotation)
                 this.dirRotation += (this.node.rotation + (type === "180" ? 30 : -30) - this.dirRotation)
                 //攒气 
                 this.storgPower(dt);
@@ -254,9 +270,9 @@ export default class Player extends cc.Component {
                 }
                 if (!this.Accelerating) {
                     //漂移衰减速度
-                    let cp = this.MaxSpeed/2;
+                    let cp = this.MaxSpeed / 2;
                     if (this.speed > cp) {
-                        this.rSpeed = this.speed - ((this.a * dt) / 2)
+                        this.rSpeed = this.speed - ((this.speedA * dt) / 2)
                     } else {
                         this.rSpeed = cp
                     }
@@ -271,9 +287,9 @@ export default class Player extends cc.Component {
             } else {
                 this.Camera.zoomRatio += (this.MinZoomRatio - 0.2 - this.Camera.zoomRatio) / 10
                 this.zoomN++;
-                if(this.zoomN>50){
-                    this.zoomF=false
-                    this.zoomN=0;
+                if (this.zoomN > 50) {
+                    this.zoomF = false
+                    this.zoomN = 0;
                 }
             }
 
@@ -292,7 +308,7 @@ export default class Player extends cc.Component {
             this.speed = this.MaxSpeed;
         } else if (Math.abs(this.speed) < this.MaxSpeed) {
             if (!(this.region && this.vc && this.keyList.get(cc.macro.KEY.j))) {
-                this.speed += this.a * dt
+                this.speed += this.speedA * dt
             }
         }
         speed.x = this.speed * Math.sin(this.dirRotation * Math.PI / 180);
@@ -309,7 +325,7 @@ export default class Player extends cc.Component {
             case 1:
                 this.keyList.set(cc.macro.KEY.f, true)
                 this.emitPower()
-                
+
                 break
             case 2:
                 //漂移
@@ -399,11 +415,28 @@ export default class Player extends cc.Component {
                 }
                 this.node.rotation += (this.oth.node.rotation - this.node.rotation) / 10
                 this.dirRotation += (this.oth.node.rotation - this.dirRotation) / 10
-                if (this.keyList.get(cc.macro.KEY.j)) {
-                    this.node.rotation += 5;
-                    this.dirRotation += 5;
-                }
+            } else {
+                /**--------------------- */
+                // if (this.P < 0 && this.node.rotation > 0) {
+                //     let ro = this.node.rotation - 360;
+                //     let dir = this.dirRotation - 360;
+                //     if (Math.abs(this.P /**oth.node.rotation */ - this.node.rotation) > Math.abs(this.P - ro)) {
+                //         this.node.rotation = ro;
+                //         this.dirRotation = dir;
+                //     }
+                // } else if (this.P > 0 && this.node.rotation < 0) {
+                //     let ro = this.node.rotation + 360;
+                //     let dir = this.dirRotation + 360;
+                //     if (Math.abs(this.P - this.node.rotation) > Math.abs(this.P - ro)) {
+                //         this.node.rotation = ro;
+                //         this.dirRotation = dir;
+                //     }
+                // }
+                // this.node.rotation += (this.P - this.node.rotation) / 10
+                // this.dirRotation += (this.P - this.dirRotation) / 10
+                /**-------------------- */
             }
+
         }
         if (this.keyList.get(cc.macro.KEY.j)) {
             let region = this.oth.getComponent(cc.RopeJoint);
@@ -466,7 +499,7 @@ export default class Player extends cc.Component {
             return
         }
         // this.powerStorage >= 100 ? 100 : 
-        this.powerStorage = this.powerStorage + this.powerA * dt;// this.powerStorage < 100 ? this.powerStorage + 0.5 : 100
+        this.powerStorage = this.powerStorage >= 100 ? 100 : this.powerStorage + this.powerA * dt;// this.powerStorage < 100 ? this.powerStorage + 0.5 : 100
         this.node.emit(CusEvent.storgPower, Math.floor(this.powerStorage).toString())//发射漂移事件，正在攒气
     }
     /**
@@ -487,7 +520,7 @@ export default class Player extends cc.Component {
         this.zoomF = true;
     }
     power = function () {
-        this.powerStorage -= this.powerA * 0.05;
+        this.powerStorage -= this.powerA * 0.02;
         if (this.powerStorage <= 0) {
             this.unschedule(this.power);
             this.Accelerating = false

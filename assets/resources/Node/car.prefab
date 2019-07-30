@@ -24,7 +24,7 @@
       }
     ],
     "_active": true,
-    "_level": 1,
+    "_level": 2,
     "_components": [
       {
         "__id__": 6
@@ -65,14 +65,14 @@
     },
     "_position": {
       "__type__": "cc.Vec3",
-      "x": -6.6,
-      "y": -1.9,
+      "x": -4280,
+      "y": -350,
       "z": 0
     },
     "_scale": {
       "__type__": "cc.Vec3",
-      "x": 1,
-      "y": 1,
+      "x": 2,
+      "y": 2,
       "z": 1
     },
     "_rotationX": 0,
@@ -276,7 +276,7 @@
     "_angularVelocity": 0,
     "_fixedRotation": true,
     "enabledContactListener": true,
-    "bullet": false,
+    "bullet": true,
     "awakeOnLoad": true,
     "_id": ""
   },
@@ -288,12 +288,14 @@
       "__id__": 1
     },
     "_enabled": true,
-    "Camera": null,
     "StartNode": null,
-    "c": null,
+    "gui": {
+      "__uuid__": "1a9b585e-9f24-412d-a3c9-16e6b79637b8"
+    },
     "speed": 0,
-    "MaxSpeed": 400,
+    "MaxSpeed": 1500,
     "speedTime": 1,
+    "powerTime": 3,
     "_id": ""
   },
   {

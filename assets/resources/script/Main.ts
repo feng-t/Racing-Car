@@ -1,6 +1,7 @@
 import Player from "./Player";
 import { Music } from "./Music";
 import { CusEvent } from "./entity/CusEvent";
+import { GameData } from "./GameData";
 const { ccclass, property } = cc._decorator;
 /**
  * 控制页面的ui
@@ -9,8 +10,8 @@ const { ccclass, property } = cc._decorator;
 export default class Main extends cc.Component {
 
 
-    @property(cc.Node)
-    private player: cc.Node = null
+    @property(cc.Prefab)
+    private player: cc.Prefab = null
     @property(cc.Node)
     private drift: cc.Node = null
     @property(cc.Node)
@@ -37,17 +38,15 @@ export default class Main extends cc.Component {
     @property(cc.Label)
     private speed: cc.Label = null
     @property(cc.Node)
-    private Map: cc.Node = null
+    private smallMap: cc.Node = null
     /**
-     * 前面的节点
+     * 
      */
     @property({
         type: cc.Prefab
-
     })
     private frontNode: cc.Prefab = null;
-    @property(cc.Node)
-    private road: cc.Node = null;
+
     /**
      * 对象池
      */
@@ -64,22 +63,39 @@ export default class Main extends cc.Component {
     PlayerScrpit: Player
     Countdown: number = 3;
 
-    n
-
+    private smallCar: cc.Node;
+    private Car: cc.Node;
+    private begin: cc.Node
+    init(data: cc.Node) {
+        this.begin = data.getChildByName("begin");
+        this.smallMap =this.node.getChildByName("lable").getChildByName("map");
+        this.smallMap.getComponent(cc.Sprite).spriteFrame=data.getChildByName("map").getComponent(cc.Sprite).spriteFrame;
+        this.node.addChild(data);
+        // data.active = true;
+    }
     // content = new AudioContext();
     onLoad() {
+        this.init(GameData.getInstance().road);
         Music.init(function () {
-            // Music.RandomPlayBGM(false);
             this.musicLoad = true
         }.bind(this))
-        this.n = cc.instantiate(this.frontNode);
-        
-        this.Map.addChild(this.n);
+
+        this.smallCar = cc.instantiate(this.frontNode);
+        this.smallMap.addChild(this.smallCar);
+        this.Car = cc.instantiate(this.player);
+        this.PlayerScrpit = this.Car.getComponent(Player);
+
+        this.PlayerScrpit.init({
+            MaxSpeed: 1500,
+            speedTime: 1,
+            powerTime: 1,
+            sf: new cc.SpriteFrame("map/car"),
+            StartNode: this.begin
+        })
+
     }
     start() {
-        // console.log(this.frontNode);
-        
-        this.PlayerScrpit = this.player.getComponent("Player");
+        this.node.addChild(this.Car);
         this.startLabel.string = "游戏倒计时"
         this.timer.string = "0"
         this.power.string = "0"
@@ -120,23 +136,23 @@ export default class Main extends cc.Component {
     onPlayer() {
         // this.Nodes.get()
         this.schedule(this.strCall, 1)
-        this.player.on(CusEvent.storgPower, function (power: string) {
+        this.Car.on(CusEvent.storgPower, function (power: string) {
             this.power.string = power;
         }, this)
-        this.player.on(CusEvent.emit_speed, function (v: number) {
+        this.Car.on(CusEvent.emit_speed, function (v: number) {
             this.speed.string = Math.floor(v).toString()
         }, this);
         /**
          * outNode：需要回收的节点
          * nowNode：现在所处的节点
          */
-        this.player.on(CusEvent.outNode, function (outNode, nowNode) {
+        this.Car.on(CusEvent.outNode, function (outNode, nowNode) {
             // this.linkNode(this.frontNode, outNode, 0, 0)
         }, this)
     }
     update(dt) {
         // console.log(this.player.x / 45, this.player.y / 45);
-        this.n.setPosition(this.player.x / 45, this.player.y / 45)
+        this.smallCar.setPosition(this.Car.x / 45, this.Car.y / 45)
         if (this.Countdown < 0) {
             this.time += dt
             const m = Math.floor(this.time / (60));
@@ -150,7 +166,7 @@ export default class Main extends cc.Component {
         if (this.Countdown === 0) {
             // this.stop = false;
             // this.GameStart = true
-            this.player.emit("gameStart")//开始游戏
+            this.Car.emit("gameStart")//开始游戏
 
             this.startLabel.node.destroy();
             // 取消这个计时器

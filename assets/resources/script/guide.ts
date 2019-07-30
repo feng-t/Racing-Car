@@ -1,4 +1,5 @@
 import { HttpUtils } from "./HttpUtils";
+import { GameData } from "./GameData";
 
 // Learn TypeScript:
 //  - [Chinese] https://docs.cocos.com/creator/manual/zh/scripting/typescript.html
@@ -28,24 +29,8 @@ export default class NewClass extends cc.Component {
     update(dt) { }
 
     onclick() {
-        // const s = HttpUtils.formatParams({
-        //     cocos: "ss",
-        //     dd: "test"
-        // });
-        // HttpUtils.Request({
-        //     url: "http://localhost:8080/user/login",
-        //     type: "post",
-        //     data: {
-        //         code: "sdfsdf",
-        //         userInfo: {}
-        //     },
-        //     success: function (res) {
-        //         console.log(res);
-        //         if (res && res.flag) {
-        //             cc.director.loadScene("Home")
-        //         }
-        //     }
-        // })
+        
+        
 
         if (this.wx) {
             let that = this;
@@ -77,37 +62,7 @@ export default class NewClass extends cc.Component {
                 }
             })
 
-            // this.wx.getUserInfo({
-            //     success: function (urs) {
-            //         that.wx.login({
-            //             success(res) {
-            //                 if (res.code) {
-            //                     that.wx.request({
-            //                         url: "http://localhost:8080/user/login",
-            //                         method: "POST",
-            //                         // header:{
-            //                         //     'Content-Type': 'application/json'
-            //                         // },
-            //                         data: {
-            //                             code: res.code,
-            //                             userInfo: urs.userInfo
-            //                         },
-            //                         success(rs) {
-            //                             rs = rs.data
-            //                             console.log(rs);
-            //                             if (rs && rs.flag) {
-            //                                 cc.director.loadScene("Home")
-            //                             }
-            //                         }
-            //                     })
-            //                 } else {
-            //                     console.log("登陆失败", res.errMsg);
-
-            //                 }
-            //             }
-            //         })
-            //     }
-            // })
+          
 
         }
 

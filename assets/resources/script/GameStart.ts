@@ -1,17 +1,12 @@
-// Learn TypeScript:
-//  - [Chinese] https://docs.cocos.com/creator/manual/zh/scripting/typescript.html
-//  - [English] http://www.cocos2d-x.org/docs/creator/manual/en/scripting/typescript.html
-// Learn Attribute:
-//  - [Chinese] https://docs.cocos.com/creator/manual/zh/scripting/reference/attributes.html
-//  - [English] http://www.cocos2d-x.org/docs/creator/manual/en/scripting/reference/attributes.html
-// Learn life-cycle callbacks:
-//  - [Chinese] https://docs.cocos.com/creator/manual/zh/scripting/life-cycle-callbacks.html
-//  - [English] http://www.cocos2d-x.org/docs/creator/manual/en/scripting/life-cycle-callbacks.html
+import { GameData } from "./GameData";
 
 const { ccclass, property } = cc._decorator;
 
 @ccclass
 export default class GameStart extends cc.Component {
+
+    @property(cc.Node)
+    roadNode: cc.Node = null;
 
     @property(cc.Button)
     btn: cc.Button = null;
@@ -21,12 +16,31 @@ export default class GameStart extends cc.Component {
     @property(cc.Prefab)
     rank: cc.Prefab = null;
     // LIFE-CYCLE CALLBACKS:
-
+    @property([cc.Prefab])
+    private road: cc.Prefab[] = [];
+    private leftNode: cc.Node;
+    private rightNode: cc.Node;
     onLoad() {
+        cc.director.getPhysicsManager().enabled = true;
+        cc.director.getCollisionManager().enabled = true;
+        this.loadNode();
     }
 
     start() {
 
+        this.leftNode.on(cc.Node.EventType.TOUCH_START, function (e) {
+            console.log("left");
+        }.bind(this))
+        this.rightNode.on(cc.Node.EventType.TOUCH_START, function (e) {
+            console.log("left");
+        }.bind(this))
+        // this.node.addChild(cc.instantiate(this.rank))
+
+    }
+
+    loadNode() {
+        GameData.getInstance().road = cc.instantiate(this.road[0]);
+        // this.node.addChild(GameData.getInstance().road)
         cc.director.preloadScene("open1", (c: number, t: number, i: any) => {
             //load
 
@@ -36,23 +50,23 @@ export default class GameStart extends cc.Component {
                 return
             }
             this.btn.node.on("click", function () {
+
                 cc.director.loadScene("open1")
             }, this)
-            
+
             this.rankBtn.on(cc.Node.EventType.TOUCH_START, function (e) {
-                let n:cc.Node
-                if(n=this.node.getChildByName("bot")){
-                    n.active=true;
+                let n: cc.Node
+                if (n = this.node.getChildByName("bot")) {
+                    n.active = true;
                     return
                 }
                 n = cc.instantiate(this.rank);
                 this.node.addChild(n)
             }.bind(this))
-            
         })
-        // this.node.addChild(cc.instantiate(this.rank))
-        
-    }
+        this.leftNode = this.roadNode.getChildByName("left")
+        this.rightNode = this.roadNode.getChildByName("right")
 
+    }
     // update (dt) {}
 }
